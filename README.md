@@ -71,9 +71,9 @@ iptables -t mangle -A PREROUTING -d 10.151.83.72/29 -p tcp --dport 22 -j DROP
 dan DNS server hanya boleh menerima maksimal 3 koneksi ICMP secara bersamaan yang berasal dari
 mana saja menggunakan iptables pada masing masing server, selebihnya akan di DROP.
 
-Pada UML Mojokerto (DHCP) dan Malang (DNS Server)
+Pada UML Mojokerto (DHCP) dan Malang (DNS Server), tambahkan :
 ```
-Salim
+iptables -A INPUT -p icmp -m connlimit --connlimit-above 3 --connlimit-mask 0 -j DROP
 ```
 
 kemudian kalian diminta untuk membatasi akses ke MALANG yang berasal dari SUBNET
@@ -100,8 +100,10 @@ Karena kita memiliki 2 buah WEB Server, (6) Bibah ingin SURABAYA disetting sehin
 request dari client yang mengakses DNS Server akan didistribusikan secara bergantian pada
 PROBOLINGGO port 80 dan MADIUN port 80.
 
+Pada UML Surabaya, tambahkan :
 ```
-Salim
+iptables -t nat -A PREROUTING -p tcp --dport 80 -d 10.151.83.74 -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 192.168.4.3:80
+iptables -t nat -A PREROUTING -p tcp --dport 80 -d 10.151.83.74 -m statistic --mode nth --every 1 --packet 0 -j DNAT --to-destination 192.168.4.2:80
 ```
 
 7. Bibah ingin agar semua paket didrop oleh firewall (dalam topologi) tercatat dalam log pada setiap
@@ -113,7 +115,7 @@ iptables -t mangle -N LOGGING
 iptables -t mangle -A LOGGING -m limit --limit 2/min -j LOG --log-prefix "IPTables-Dropped: " --log-level 4
 iptables -t mangle -A LOGGING -j DROP
 
-#Untuk di Malang dan Mojokert, menggunakan table  Filter
+#Untuk di Malang dan Mojokerto, menggunakan table  Filter
 iptables -N LOGGING
 iptables -A LOGGING -m limit --limit 2/min -j LOG --log-prefix "IPTables-Dropped: " --log-level 4
 iptables -A LOGGING -j DROP
